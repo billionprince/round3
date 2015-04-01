@@ -1,0 +1,14 @@
+*.pyc
+*.log
+.settings
+.classpath
+.git
+.project
+.pydevproject
+.DS_Store
+.ropeproject
+.idea
+*.db
+*.pid
+*.json
+*.csv
