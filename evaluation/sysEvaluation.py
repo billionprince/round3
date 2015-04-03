@@ -4,21 +4,24 @@ import settings
 def sysTest(recommendation_dict):
     lines = fileHandler.readFile(settings.USER_FILE, 10000)
 
-    cnt0 = 0 #num of hit
-    cnt1 = 0 # num of recommendation
-    cnt2 = 0 # num of real buy
+    num_hit = 1 #num of hit, true positive
+    num_recommend = 1 # num of recommendation, true positive+false positive
+    num_real_buy = 1 # num of real buy, true positive+false negative
 
     for usr in recommendation_dict:
-        cnt1 += len(recommendation_dict[usr])
+        num_recommend += len(recommendation_dict[usr])
     for line in lines:
-        cnt2 += 1
+        num_real_buy += 1
         userid = line['user_id']
         if userid in recommendation_dict:
             itemid = line['item_id']
             if itemid in recommendation_dict[userid]:
-                cnt0 += 1
-    precision = cnt0 / cnt1
-    recall = cnt0 / cnt2
-    F_measure = 2 * precision * recall / (precision + recall)
-    print F_measure
+                num_hit += 1
+    precision = 1.0 * num_hit / num_recommend
+    recall = 1.0 * num_hit / num_real_buy
+    F_measure = 2.0 * precision * recall / (precision + recall)
+    print 'precision =', precision
+    print 'recall=', recall
+    print 'F_measure=', F_measure
     return F_measure
+
