@@ -1,1 +1,6 @@
-pip install numpy scipy scikit-learn
+Install:
+    pip install numpy scipy scikit-learn
+    pip install pysqlite
+Data configration:
+    copy 'tianchi_mobile_recommend_train_item.csv' and 'tianchi_mobile_recommend_train_user.csv' file to 'data' dir
+    run data/script.py
