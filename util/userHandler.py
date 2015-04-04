@@ -88,7 +88,7 @@ def get_buy_items_of_mulitple_users_by_userid(uidlist):
     if not isinstance(uidlist, list):
         raise ValueError('uidlist shold be list')
     int_uidlist = [str(uid) for uid in uidlist]
-    q = 'select distinct item_id from userlist where user_id in (%s) and behavior_type=3' % ','.join(int_uidlist)
+    q = 'select distinct item_id from userlist where user_id in (%s) and behavior_type=4' % ','.join(int_uidlist)
     cursor.execute(q)
     lines = cursor.fetchall()
     rec = [line[0] for line in lines]
