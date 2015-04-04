@@ -1,6 +1,7 @@
 import codecs
 import os
 import settings
+import csv
 
 def readFile(path, lineNum=None):
     path = os.path.join(os.path.dirname(settings.__file__), path)
@@ -20,4 +21,15 @@ def writeFile(path, lines):
     path = os.path.abspath(path)
     with codecs.open(path, 'wb', 'utf-8') as fout:
         fout.write(lines)
+    return True
+
+def writeCsvFile(path, lines):
+    path = os.path.abspath(path)
+    title = ['user_id', 'item_id']
+    with codecs.open(path, 'wb', 'utf-8') as fout:
+        writer = csv.writer(fout)
+        writer.writerow(title)
+        for uid in lines:
+            rows = [[uid, tid] for tid in set(lines[uid])]
+            writer.writerows(rows)
     return True

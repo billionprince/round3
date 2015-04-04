@@ -17,6 +17,14 @@ def get_all_itemid():
     cursor.close()
     return rec
 
+def get_all_item_category():
+    cursor = CONN.cursor()
+    cursor.execute('select distinct item_category from itemlist')
+    lines = cursor.fetchall()
+    rec = [str(line[0]) for line in lines]
+    cursor.close()
+    return rec
+
 def get_item_type_by_itemid(tid):
     cursor = CONN.cursor()
     int_tid = tid
@@ -51,3 +59,21 @@ def get_item_buytimes_buy_itemid(tid):
     rec = {tid: [(str(line[0]), line[1]) for line in lines]}
     cursor.close()
     return rec[tid][:10]
+
+def get_items_by_item_category(item_category):
+    cursor = CONN.cursor()
+    if not isinstance(item_category, basestring):
+        item_category = int(item_category)
+    cursor.execute('select distinct item_id from itemlist where item_category=%s' % item_category)
+    lines = cursor.fetchall()
+    rec = [str(line[0]) for line in lines]
+    cursor.close()
+    return rec
+
+if __name__ == '__main__':
+    item_categorys = get_all_item_category()
+    print get_items_by_item_category(11991)
+    # for item_category in item_categorys:
+    #     lines = get_items_by_item_category(item_category)
+    #     if len(lines) > 1:
+    #         print item_category, len(lines)

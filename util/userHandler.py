@@ -50,7 +50,7 @@ def get_user_data_by_userid(uid):
     cursor.close()
     return rec
 
-def get_user_buy_item_by_userid(uid):
+def get_user_buy_items_by_userid(uid):
     cursor = CONN.cursor()
     int_uid = uid
     if not isinstance(uid, int):
@@ -61,7 +61,7 @@ def get_user_buy_item_by_userid(uid):
     cursor.close()
     return rec
 
-def get_user_buy_item_and_buytimes_by_userid(uid):
+def get_user_buy_items_and_buytimes_by_userid(uid):
     cursor = CONN.cursor()
     int_uid = uid
     if not isinstance(uid, int):
@@ -80,5 +80,17 @@ def get_items_on_shopping_cart_by_uid(uid):
     cursor.execute('select distinct item_id from userlist where user_id=%s and behavior_type=3' % int_uid)
     lines = cursor.fetchall()
     rec = {uid: [str(line[0]) for line in lines]}
+    cursor.close()
+    return rec
+
+def get_buy_items_of_mulitple_users_by_userid(uidlist):
+    cursor = CONN.cursor()
+    if not isinstance(uidlist, list):
+        raise ValueError('uidlist shold be list')
+    int_uidlist = [str(uid) for uid in uidlist]
+    q = 'select distinct item_id from userlist where user_id in (%s) and behavior_type=3' % ','.join(int_uidlist)
+    cursor.execute(q)
+    lines = cursor.fetchall()
+    rec = [line[0] for line in lines]
     cursor.close()
     return rec
