@@ -42,6 +42,10 @@ def insert_data(conn):
 def create_tran_data(conn):
     cursor = conn.cursor()
     try:
+        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="traindata"')
+        if cursor.fetchone():
+            cursor.execute('drop table traindata')
+            conn.commit()
         cursor.execute('select count(*) from userlist')
         total = cursor.fetchone()[0]
         require = int(total * 0.8)
@@ -54,6 +58,10 @@ def create_tran_data(conn):
 def create_test_data(conn):
     cursor = conn.cursor()
     try:
+        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="testdata"')
+        if cursor.fetchone():
+            cursor.execute('drop table testdata')
+            conn.commit()
         cursor.execute('create table testdata (user_id INTEGER, item_id INTEGER)')
         conn.commit()
         lines = userHandler.get_user_data_set_by_time(-0.2)
