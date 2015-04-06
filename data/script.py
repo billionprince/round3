@@ -2,6 +2,7 @@ import sqlite3
 import settings
 import os
 import codecs
+from util import userHandler
 
 def create_table(conn):
     rec = False
@@ -38,18 +39,29 @@ def insert_data(conn):
     conn.commit()
     cursor.close()
 
+def create_tran_data(conn):
+    cursor = conn.cursor()
+    try:
+        cursor.execute('select count(*) from userlist')
+        total = cursor.fetchone()[0]
+        require = int(total * 0.8)
+        cursor.execute('create table traindata as select * from userlist order by userlist.time desc limit %s' % require)
+        conn.commit()
+        cursor.close()
+    except:
+        pass
+
 def create_test_data(conn):
     cursor = conn.cursor()
     try:
         cursor.execute('create table testdata (user_id INTEGER, item_id INTEGER)')
         conn.commit()
+        lines = userHandler.get_user_data_set_by_time(-0.2)
+        cursor.executemany('INSERT INTO testdata VALUES (?,?)', [[line['user_id'], line['item_id']] for line in lines if line['behavior_type'] == 4])
+        conn.commit()
+        cursor.close()
     except:
         pass
-    from util import userHandler
-    lines = userHandler.get_user_data_set_by_time(-0.2)
-    cursor.executemany('INSERT INTO testdata VALUES (?,?)', [[line['user_id'], line['item_id']] for line in lines])
-    conn.commit()
-    cursor.close()
 
 
 if __name__ == '__main__':
@@ -58,6 +70,7 @@ if __name__ == '__main__':
         conn = sqlite3.connect(db_path)
         if create_table(conn):
             insert_data(conn)
+        create_tran_data(conn)
         create_test_data(conn)
     except Exception as e:
         print e
