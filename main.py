@@ -1,7 +1,7 @@
-from cluster import recommendation
-from util import userHandler, itemHandler
+from util import userHandler, itemHandler, fileHandler
 from evaluation import sysEvaluation
-from cluster import recommendation
+from cluster import graph_based_recommendation
+import settings
 
 if __name__ == '__main__':
     try:
@@ -9,10 +9,13 @@ if __name__ == '__main__':
         # user_classlabel, user_dict = DBSCAN.DBSCAN_user(user_dict)
         # item_dict, item_type_dict, item_type_idx = itemHandler.item_input()
         # recommendation_dict = recommendation.item_recommendation(user_classlabel, user_dict, user_mtx_id, item_type_dict, item_type_idx)
-        recommendation_dict = recommendation.item_recommendation_single_user(num_recommend=1, min_buy_tiems=0)
-        F_measure = sysEvaluation.sysTest(recommendation_dict)
+        # recommendation_dict = recommendation.item_recommendation_single_user(num_recommend=1, min_buy_tiems=0)
+        recommendation_dict = graph_based_recommendation.recommendation(cat_sim_thr=0.005, user_sim_thr=0.001, min_cat_sz=20, min_cat_thr=4, min_rec_per_cat=2)
+        # F_measure = sysEvaluation.sysTest(recommendation_dict)
+        # fileHandler.writeCsvFile(settings.OUTPUT_CSV, ['str', 'str'], recommendation_dict)
     except Exception as e:
         print e
+
 
 # TODO:20150404
 # 1. In function fileHandler.readFile, '\r' is not stripped, problems will occur when I call it

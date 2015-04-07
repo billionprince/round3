@@ -1,19 +1,16 @@
 import settings
 import os
 import sqlite3
-import codecs
-import csv
 from util import fileHandler, userHandler, itemHandler
-from operator import itemgetter
 
-TEMP_FILE_CATEGORY_PAIR = 'category_pair.csv'
-TEMP_FILE_HOT_ITEM = 'hot_item.csv'
+TEMP_FILE_CATEGORY_PAIR = 'cluster/category_pair.csv'
+TEMP_FILE_HOT_ITEM = 'cluster/hot_item.csv'
 DB_PATH = os.path.join(os.path.dirname(settings.__file__), settings.DB_NAME)
 CONN = sqlite3.connect(DB_PATH)
 USERLIST = ['user_id', 'item_id', 'behavior_type', 'user_geohash', 'item_category', 'time']
 IMTELIST = ['item_id', 'item_geohash', 'item_category']
 
-def recommendation(cat_sim_thr, min_rec_per_cat):
+def recommendation(cat_sim_thr, user_sim_thr, min_cat_sz, min_cat_thr, min_rec_per_cat):
     # item_id = itemHandler.get_all_itemid() # total:314694
     # n_item = userHandler.get_item_category_count_in_userlist() # total category:120236
 
@@ -26,24 +23,38 @@ def recommendation(cat_sim_thr, min_rec_per_cat):
 ## =================150406 BEGIN================= ##
 
     recommendation_dict = {}
-
+    cat_overlap_dict = {}
     # # preprocess category pair into csv to speed up
-    # cat_overlap_dict = get_buy_category_pair()
-    # write_tempfile_dict(TEMP_FILE_CATEGORY_PAIR, cat_overlap_dict)
+    # cat_overlap_dict_pre = get_buy_category_pair(table='traindata')
+    # for ci in cat_overlap_dict_pre:
+    # #     print cat_overlap_dict_pre[ci]
+    # #     break
+    #     if len(cat_overlap_dict_pre[ci]) > min_cat_sz:
+    #         cat_overlap_dict[ci] = cat_overlap_dict_pre[ci]
+    # fileHandler.writeCsvFile(TEMP_FILE_CATEGORY_PAIR, cat_overlap_dict, ['item_id1', 'item_id2'])
     # read preprocessed csv file of category pair
-    cat_overlap_dict = read_tempfile_dict(TEMP_FILE_CATEGORY_PAIR, lineNum=None)
+    cat_overlap_dict = fileHandler.readCsvFile(TEMP_FILE_CATEGORY_PAIR, ['str', 'str'], lineNum=None)
+    # for ci in cat_overlap_dict:
+    #     print ci
     # print 'ok'
 
     # # preprocess hot item of each category into csv to speed up
     # cat_hot_item = get_buy_item_count_by_all_category()
     #
-    # write_tempfile_dict(TEMP_FILE_HOT_ITEM, cat_hot_item)
+    # fileHandler.writeCsvFile(TEMP_FILE_HOT_ITEM, cat_hot_item, ['item_category', 'item_id', 'count'])
 
+    # print 'end'
     # read preprocessed csv file of category pair
-    cat_hot_item = read_tempfile_dict(TEMP_FILE_HOT_ITEM, lineNum=None)
-    # item category similarity
+    cat_hot_item = fileHandler.readCsvFile(TEMP_FILE_HOT_ITEM, ['str', 'str', 'int'], lineNum=None)
+    # item category similarityval_type
+    # for ci in cat_hot_item:
+    #     print cat_hot_item[ci]
+    #     break
     cat_similarity = {}
     cat_neighbor = {}
+    user_similarity = {}
+
+    print 'end'
 
     for ci in cat_overlap_dict:
         # print cat_overlap_dict[ci]
@@ -54,29 +65,42 @@ def recommendation(cat_sim_thr, min_rec_per_cat):
         # break
         cat_similarity[ci] = {}
         cat_neighbor[ci] = []
+        # cnt = 0
         for cj in cat_overlap_dict:
             # print cat_overlap_dict[cj]
             n_cj = len(cat_overlap_dict[cj])
+            # print cat_overlap_dict[ci].count(cj)
+            # print cat_overlap_dict[ci]
+
             cat_similarity[ci][cj] = cat_overlap_dict[ci].count(cj) * 1.0 / (1.0 * (n_ci + n_cj))
             # print n_ci
             # print n_cj
             # print cat_overlap_dict[ci].count(cj)
+            # print cat_similarity[ci][cj]
             if cat_similarity[ci][cj] > cat_sim_thr:
+                # cnt += 1
                 cat_neighbor[ci].append(cj)
                 # print cat_similarity[ci][cj]
         # print cat_overlap_dict[ci].count('1169')
         # break
-
-    print cat_neighbor
+        # print cnt
+        # break
+    print 'end cat neighbour calculation'
+    # print cat_neighbor
 
     #user recommendation
     user_buy_category_dict = {}
-    user_id = userHandler.get_all_user_selected() # >=2 times, 129 user
-
+    user_id = userHandler.get_userid_buy_behavior_num() # >=2 times, 129 user
+    # print len(user_id)
     for ui in user_id:
+        print 'ui=', ui
         recommendation_dict[ui] = []
+        user_similarity[ui] = {}
         user_buy_category_dict = dict(user_buy_category_dict, **userHandler.get_user_buy_item_categories_by_userid(ui))
-        # print user_buy_item_category_dict
+        # print user_buy_category_dict
+        # break
+        if len(user_buy_category_dict[ui]) <= min_cat_thr:
+            continue
         for ci in user_buy_category_dict[ui]:
             # recommend hot item in similar category but the user haven't bought
             if ci not in cat_neighbor:
@@ -91,7 +115,27 @@ def recommendation(cat_sim_thr, min_rec_per_cat):
                 if cat_hot_item[ci][ti] not in recommendation_dict[ui]:
                     recommendation_dict[ui].append(cat_hot_item[ci][ti][0])
 
-    print recommendation_dict
+    # recommend hot item the neighbor user bought many times
+    for ui in user_id:
+        for uj in user_id:
+            if len(user_buy_category_dict[uj]) <= min_cat_thr:
+                continue
+            same_cat_lst = list(set(user_buy_category_dict[ui]).intersection(set(user_buy_category_dict[uj])))
+            # print 'len=', len(same_cat_lst)
+            # print len(user_buy_category_dict[ui])
+            # print len(user_buy_category_dict[uj])
+            user_similarity[ui][uj] = 1.0 * len(same_cat_lst) / (1.0 * (len(user_buy_category_dict[ui]) + len(user_buy_category_dict[uj])))
+            # print user_similarity[ui][uj]
+            if user_similarity[ui][uj] > user_sim_thr:
+                for ci in same_cat_lst:
+                    # print 'l=', ci
+                    for ti in range(min(min_rec_per_cat, len(cat_hot_item[ci]))):
+                        # print ti
+                        if cat_hot_item[ci][ti] not in recommendation_dict[ui]:
+                            recommendation_dict[ui].append(cat_hot_item[ci][ti][0])
+                        print recommendation_dict[ui]
+            # print 'pls'
+    # print type(recommendation_dict)
 
 ## =================150406 END================= ##
 
@@ -252,14 +296,14 @@ def recommendation(cat_sim_thr, min_rec_per_cat):
 
     return recommendation_dict
 
-def get_buy_item_pair_by_userid(uid):
+def get_buy_item_pair_by_userid(uid, table='traindata'):
     cursor = CONN.cursor()
     int_uid = uid
     if not isinstance(uid, int):
         int_uid = int(int_uid)
     q = 'select A.user_id, A.item_id, B.item_id from userlist A, userlist B '
     q += 'where A.user_id = B.user_id and a.item_id != b.item_id and a.behavior_type=4 and b.behavior_type=4'
-    cursor.execute(q)
+    cursor.execute(q % table)
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
@@ -270,31 +314,47 @@ def get_buy_item_pair_by_userid(uid):
     cursor.close()
     return rec
 
-def get_buy_category_pair():
+def get_buy_category_pair(table='traindata'):
     cursor = CONN.cursor()
-    q = 'select A.item_category, B.item_category from userlist A, userlist B '
+    q = 'select A.item_category, B.item_category from %s A, %s B '
     q += 'where A.user_id = B.user_id and a.item_category != b.item_category and a.behavior_type=4 and b.behavior_type=4'
-    cursor.execute(q)
+    cursor.execute(q % (table, table))
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
         if str(line[0]) not in rec:
-            rec[str(line[0])] = [[str(line[1])]]
+            rec[str(line[0])] = [str(line[1])]
         else:
-            rec[str(line[0])].append([str(line[1])])
+            rec[str(line[0])].append(str(line[1]))
     cursor.close()
     return rec
 
-def get_buy_item_count_by_category(cid):
+# def get_buy_category_pair_selected(min_item_thr, table='traindata'):
+#     cursor = CONN.cursor()
+#     q = 'select A.item_category, B.item_category from %s A, %s B '
+#     q += 'group by A.item_category having A.user_id = B.user_id '
+#     q += 'and a.item_category != b.item_category and a.behavior_type=4 and b.behavior_type=4 and count(*) > %d'
+#     cursor.execute(q % (table, table, min_item_thr))
+#     lines = cursor.fetchall()
+#     rec = {}
+#     for line in lines:
+#         if str(line[0]) not in rec:
+#             rec[str(line[0])] = [[str(line[1])]]
+#         else:
+#             rec[str(line[0])].append([str(line[1])])
+#     cursor.close()
+#     return rec
+
+def get_buy_item_count_by_category(cid, table='traindata'):
     cursor = CONN.cursor()
     int_cid = cid
     if not isinstance(cid, int):
         int_cid = int(int_cid)
-    q = 'select item_id, count(*) from userlist '
+    q = 'select item_id, count(*) from %s '
     q += 'where item_category=%s and behavior_type=4 group by item_id'
     # q = 'select item_category, item_id, count(*) from userlist group by item_id '
     # q += 'having item_category=%s and behavior_type=4'
-    cursor.execute(q % int_cid)
+    cursor.execute(q % (table, int_cid))
     lines = cursor.fetchall()
     rec = []
     for line in lines:
@@ -303,13 +363,13 @@ def get_buy_item_count_by_category(cid):
     # print rec
     return rec
 
-def get_buy_item_count_by_all_category():
+def get_buy_item_count_by_all_category(table='traindata'):
     cursor = CONN.cursor()
-    q = 'select item_category, item_id, count(*) from userlist '
+    q = 'select item_category, item_id, count(*) from %s '
     q += 'where behavior_type=4 group by item_id'
     # q = 'select item_category, item_id, count(*) from userlist group by item_id '
     # q += 'having item_category=%s and behavior_type=4'
-    cursor.execute(q)
+    cursor.execute(q % table)
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
@@ -320,45 +380,48 @@ def get_buy_item_count_by_all_category():
     # print rec
     return rec
 
-def write_tempfile_dict(path, lines):
-    path = os.path.abspath(path)
-    # title = ['item_id1', 'item_id2']
-    with codecs.open(path, 'wb', 'utf-8') as fout:
-        writer = csv.writer(fout)
-        # writer.writerow(title)
-        for uid in lines:
-            rows = [uid]
-            for i in lines[uid][0]:
-                rows.append(str(i))
-            writer.writerows([rows])
-    return True
+# def write_tempfile_dict(path, lines):
+#     path = os.path.abspath(path)
+#     # title = ['item_id1', 'item_id2']
+#     with codecs.open(path, 'wb', 'utf-8') as fout:
+#         writer = csv.writer(fout)
+#         # writer.writerow(title)
+#         for uid in lines:
+#             rows = [uid]
+#             for i in lines[uid][0]:
+#                 rows.append(str(i))
+#             writer.writerows([rows])
+#     return True
 
-def read_tempfile_dict(path, lineNum=None):
-    path = os.path.abspath(path)
-    if not os.path.isfile(path):
-        raise ValueError('file path is invalid')
-    with codecs.open(path, 'rb', 'utf-8') as fin:
-        if lineNum:
-            lines = [next(fin).strip('\n') for x in xrange(lineNum)]
-        else:
-            lines = [line.strip('\n') for line in fin.readlines()]
-    rec = {}
-    for line in lines:
-        tp_line = (line.strip('\r')).split(',')
-        if str(tp_line[0]) not in rec:
-            rec[str(tp_line[0])] = []
-        if len(tp_line) > 2:
-            tp_lst = [tp_line[1]]
-            for i in tp_line[2:]:
-                tp_lst.append(int(i))
-            rec[str(tp_line[0])].append(tp_lst)
-        else:
-            rec[str(tp_line[0])].append(tp_line[1])
+# def read_tempfile_dict(path, lineNum=None):
+#     path = os.path.abspath(path)
+#     print path
+#     if not os.path.isfile(path):
+#         raise ValueError('file path is invalid')
+#     with codecs.open(path, 'rb', 'utf-8') as fin:
+#         if lineNum:
+#             lines = [next(fin).strip('\n') for x in xrange(lineNum)]
+#         else:
+#             lines = [line.strip('\n') for line in fin.readlines()]
+#     rec = {}
+#     for line in lines:
+#         tp_line = (line.strip('\r')).split(',')
+#         if str(tp_line[0]) not in rec:
+#             rec[str(tp_line[0])] = []
+#         if len(tp_line) > 2:
+#             tp_lst = [tp_line[1]]
+#             for i in tp_line[2:]:
+#                 tp_lst.append(int(i))
+#             rec[str(tp_line[0])].append(tp_lst)
+#         else:
+#             rec[str(tp_line[0])].append(tp_line[1])
+#
+#     return rec
 
-    return rec
+
 
 if __name__ == '__main__':
-    recommendation(cat_sim_thr=0.001, min_rec_per_cat=2)
+    recommendation(cat_sim_thr=0.001, min_cat_sz=30, min_cat_thr=2, min_rec_per_cat=2)
     # dict = get_buy_item_count_by_all_category()
     # for di in dict:
     #     print dict[di]

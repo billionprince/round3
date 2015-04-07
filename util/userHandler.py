@@ -155,3 +155,14 @@ def get_userid_buy_behavior_num(tableName='userlist', buy_behavior_num=2):
     rec = [line[0] for line in lines]
     cursor.close()
     return rec
+
+def get_test_data_from_test_table(tableName='testdata'):
+    cursor = CONN.cursor()
+    cursor.execute('select * from %s' % tableName)
+    lines = cursor.fetchall()
+    rec = {}
+    for line in lines:
+        if line[0] not in rec:
+            rec[line[0]] = []
+        rec[line[0]].append(line[1])
+    return rec
