@@ -1,5 +1,5 @@
 import csv
-from util import fileHandler
+from util import fileHandler, userHandler
 import settings
 import feature_extraction
 
@@ -55,6 +55,16 @@ def item_recommendation_single_user(num_recommend, min_buy_tiems):
         print recommendation_dict[usr]
 
     return recommendation_dict
+
+def get_buy_category_pair():
+    cursor = userHandler.CONN.cursor()
+    q = 'select a.item_category, b.item_category, count(distinct a.user_id) from trainbuydata as a '
+    q += 'inner join trainbuydata as b on a.user_id=b.user_id and a.item_category > b.item_category '
+    q += 'group by a.item_category, b.item_category'
+    cursor.execute(q)
+    rec = [line for line in cursor.fetchall()]
+    cursor.close()
+    return rec
 
 if __name__ == '__main__':
     item_recommendation_single_user(num_recommend=1, min_buy_tiems=0)

@@ -69,6 +69,20 @@ def create_test_data(conn, line_num):
         pass
     cursor.close()
 
+def create_user_buy_train_data(conn):
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="trainbuydata"')
+        if cursor.fetchone():
+            cursor.execute('drop table trainbuydata')
+            conn.commit()
+        cursor.execute('create table trainbuydata as select * from traindata where behavior_type=4')
+        conn.commit()
+    except Exception as e:
+        print e
+        pass
+    cursor.close()
+
 
 if __name__ == '__main__':
     try:
@@ -82,7 +96,8 @@ if __name__ == '__main__':
         cursor.close()
         tran_line_num = int(total * TRAIN_DATA_PERCENT)
         test_line_num = total - tran_line_num
-        create_tran_data(conn, tran_line_num)
-        create_test_data(conn, test_line_num)
+        # create_tran_data(conn, tran_line_num)
+        # create_test_data(conn, test_line_num)
+        create_user_buy_train_data(conn)
     except Exception as e:
         print e
