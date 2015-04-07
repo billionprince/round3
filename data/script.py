@@ -4,6 +4,8 @@ import os
 import codecs
 from util import userHandler
 
+TRAIN_DATA_PERCENT = 0.8
+
 def create_table(conn):
     rec = False
     try:
@@ -39,37 +41,33 @@ def insert_data(conn):
     conn.commit()
     cursor.close()
 
-def create_tran_data(conn):
+def create_tran_data(conn, line_num):
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="traindata"')
         if cursor.fetchone():
             cursor.execute('drop table traindata')
             conn.commit()
-        cursor.execute('select count(*) from userlist')
-        total = cursor.fetchone()[0]
-        require = int(total * 0.8)
-        cursor.execute('create table traindata as select * from userlist order by userlist.time desc limit %s' % require)
+        cursor.execute('create table traindata as select * from userlist order by userlist.time asc limit %s' % line_num)
         conn.commit()
-        cursor.close()
-    except:
+    except Exception as e:
+        print e
         pass
+    cursor.close()
 
-def create_test_data(conn):
+def create_test_data(conn, line_num):
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="testdata"')
         if cursor.fetchone():
             cursor.execute('drop table testdata')
             conn.commit()
-        cursor.execute('create table testdata (user_id INTEGER, item_id INTEGER)')
+        cursor.execute('create table testdata as select user_id, item_id from userlist order by userlist.time desc limit %s' % line_num)
         conn.commit()
-        lines = userHandler.get_user_data_set_by_time(-0.2)
-        cursor.executemany('INSERT INTO testdata VALUES (?,?)', [[line['user_id'], line['item_id']] for line in lines if line['behavior_type'] == 4])
-        conn.commit()
-        cursor.close()
-    except:
+    except Exception as e:
+        print e
         pass
+    cursor.close()
 
 
 if __name__ == '__main__':
@@ -78,7 +76,13 @@ if __name__ == '__main__':
         conn = sqlite3.connect(db_path)
         if create_table(conn):
             insert_data(conn)
-        create_tran_data(conn)
-        create_test_data(conn)
+        cursor = conn.cursor()
+        cursor.execute('select count(*) from userlist')
+        total = cursor.fetchone()[0]
+        cursor.close()
+        tran_line_num = int(total * TRAIN_DATA_PERCENT)
+        test_line_num = total - tran_line_num
+        create_tran_data(conn, tran_line_num)
+        create_test_data(conn, test_line_num)
     except Exception as e:
         print e
