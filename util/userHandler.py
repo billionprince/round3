@@ -13,7 +13,7 @@ def get_all_uid(tableName='userlist'):
     cursor = CONN.cursor()
     cursor.execute('select distinct user_id from %s' % tableName)
     lines = cursor.fetchall()
-    rec = [line[0] for line in lines]
+    rec = [str(line[0]) for line in lines]
     cursor.close()
     return rec
 
@@ -158,7 +158,39 @@ def get_userid_buy_behavior_num(tableName='userlist', buy_behavior_num=2):
 
 def get_test_data_from_test_table(tableName='testdata'):
     cursor = CONN.cursor()
-    cursor.execute('select * from %s' % tableName)
+    cursor.execute('select distinct user_id, item_id from %s' % tableName)
+    lines = cursor.fetchall()
+    rec = {}
+    for line in lines:
+        if line[0] not in rec:
+            rec[line[0]] = []
+        rec[line[0]].append(line[1])
+    return rec
+
+# def get_user_buy_item_count_by_userid(uid, tableName='trainbuydata'):
+#     cursor = CONN.cursor()
+#     int_uid = uid
+#     if not isinstance(uid, int):
+#         int_uid = int(int_uid)
+#     cursor.execute('select distinct item_id, count(*) from %s where user_id=%s group by item_id' % (tableName, int_uid))
+#     lines = cursor.fetchall()
+#     rec = []
+#     for line in lines:
+#         rec.append([str(line[0]), int(line[1])])
+#     return rec
+
+def get_all_userid_and_itemid_and_behavior_type_no_distinct(tableName='trainbuydata'):
+    cursor = CONN.cursor()
+    cursor.execute('select user_id, item_id, behavior_type from %s' % (tableName))
+    lines = cursor.fetchall()
+    rec = []
+    for line in lines:
+        rec.append([str(line[0]), str(line[1]), int(line[2])])
+    return rec
+
+def get_all_userid_and_itemid_distinct(tableName='trainbuydata'):
+    cursor = CONN.cursor()
+    cursor.execute('select distinct user_id, item_id from %s where behavior_type=4' % (tableName))
     lines = cursor.fetchall()
     rec = {}
     for line in lines:

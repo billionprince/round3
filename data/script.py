@@ -4,7 +4,7 @@ import os
 import codecs
 from util import userHandler
 
-TRAIN_DATA_PERCENT = 0.8
+TRAIN_DATA_PERCENT = 0.9
 
 def create_table(conn):
     rec = False
@@ -62,7 +62,7 @@ def create_test_data(conn, line_num):
         if cursor.fetchone():
             cursor.execute('drop table testdata')
             conn.commit()
-        cursor.execute('create table testdata as select user_id, item_id from userlist order by userlist.time desc limit %s' % line_num)
+        cursor.execute('create table testdata as select user_id, item_id from userlist where behavior_type=4 order by userlist.time desc limit %s' % line_num)
         conn.commit()
     except Exception as e:
         print e
@@ -72,7 +72,7 @@ def create_test_data(conn, line_num):
 def create_user_buy_train_data(conn):
     cursor = conn.cursor()
     try:
-        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="trainbuydata"')
+        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="trainbuydata"') #trainbuydata
         if cursor.fetchone():
             cursor.execute('drop table trainbuydata')
             conn.commit()
