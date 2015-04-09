@@ -12,3 +12,5 @@
 *.pid
 *.json
 *.csv
+*.xlsx
+lib/
