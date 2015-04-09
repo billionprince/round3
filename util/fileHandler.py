@@ -43,7 +43,6 @@ def writeFile(path, lines):
 
 def writeCsvFile(path, lines, title):
     path = os.path.abspath(path)
-    # title = ['user_id', 'item_id']
     with codecs.open(path, 'wb', 'utf-8') as fout:
         writer = csv.writer(fout)
         writer.writerow(title)

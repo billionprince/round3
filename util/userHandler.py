@@ -162,9 +162,9 @@ def get_test_data_from_test_table(tableName='testdata'):
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
-        if line[0] not in rec:
-            rec[line[0]] = []
-        rec[line[0]].append(line[1])
+        if str(line[0]) not in rec:
+            rec[str(line[0])] = []
+        rec[str(line[0])].append(str(line[1]))
     return rec
 
 # def get_user_buy_item_count_by_userid(uid, tableName='trainbuydata'):
@@ -188,13 +188,16 @@ def get_all_userid_and_itemid_and_behavior_type_no_distinct(tableName='trainbuyd
         rec.append([str(line[0]), str(line[1]), int(line[2])])
     return rec
 
-def get_all_userid_and_itemid_distinct(tableName='trainbuydata'):
+def get_all_userid_and_itemid_distinct(b_type, tableName='trainbuydata'):
     cursor = CONN.cursor()
-    cursor.execute('select distinct user_id, item_id from %s where behavior_type=4' % (tableName))
+    int_b_type = b_type
+    if not isinstance(b_type, int):
+        int_b_type = int(int_b_type)
+    cursor.execute('select distinct user_id, item_id from %s where behavior_type=%d' % (tableName, int_b_type))
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
-        if line[0] not in rec:
-            rec[line[0]] = []
-        rec[line[0]].append(line[1])
+        if str(line[0]) not in rec:
+            rec[str(line[0])] = []
+        rec[str(line[0])].append(str(line[1]))
     return rec
