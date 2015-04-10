@@ -7,13 +7,21 @@ DB_PATH = os.path.join(os.path.dirname(settings.__file__), settings.DB_NAME)
 CONN = sqlite3.connect(DB_PATH)
 USERLIST = ['user_id', 'item_id', 'behavior_type', 'user_geohash', 'item_category', 'time']
 IMTELIST = ['item_id', 'item_geohash', 'item_category']
-#包括浏览、收藏、加购物车、购买，对应取值分别是1、2、3、4
+#包括浏览、收藏、加购物车、购买，1、2、3、4
 
 def get_all_uid(tableName='userlist'):
     cursor = CONN.cursor()
     cursor.execute('select distinct user_id from %s' % tableName)
     lines = cursor.fetchall()
     rec = [str(line[0]) for line in lines]
+    cursor.close()
+    return rec
+
+def get_all_buy_item_category(tableName='userlist'):
+    cursor = CONN.cursor()
+    cursor.execute('select distinct item_category from %s where behavior_type=4' % tableName)
+    lines = cursor.fetchall()
+    rec = [line[0] for line in lines]
     cursor.close()
     return rec
 
@@ -155,29 +163,6 @@ def get_userid_buy_behavior_num(tableName='userlist', buy_behavior_num=2):
     rec = [line[0] for line in lines]
     cursor.close()
     return rec
-
-def get_test_data_from_test_table(tableName='testdata'):
-    cursor = CONN.cursor()
-    cursor.execute('select distinct user_id, item_id from %s' % tableName)
-    lines = cursor.fetchall()
-    rec = {}
-    for line in lines:
-        if str(line[0]) not in rec:
-            rec[str(line[0])] = []
-        rec[str(line[0])].append(str(line[1]))
-    return rec
-
-# def get_user_buy_item_count_by_userid(uid, tableName='trainbuydata'):
-#     cursor = CONN.cursor()
-#     int_uid = uid
-#     if not isinstance(uid, int):
-#         int_uid = int(int_uid)
-#     cursor.execute('select distinct item_id, count(*) from %s where user_id=%s group by item_id' % (tableName, int_uid))
-#     lines = cursor.fetchall()
-#     rec = []
-#     for line in lines:
-#         rec.append([str(line[0]), int(line[1])])
-#     return rec
 
 def get_all_userid_and_itemid_and_behavior_type_no_distinct(tableName='trainbuydata'):
     cursor = CONN.cursor()
