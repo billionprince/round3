@@ -6,8 +6,10 @@ def calculate(data):
     gd_truth = dbHandler.read_table('testdata')
     num_recommend = sum([len(data[key]) for key in data])
     num_real_buy = len(gd_truth)
-    hit_usr = len(set([line[0] for line in gd_truth]) & set(data.keys()))
-    num_hit = sum([len(set(data[key]) & set([line[1] for line in gd_truth if line[0] == key])) for key in data])
+    user_set = set(map(int, data.keys()))
+    hit_usr = len(set([line[0] for line in gd_truth]) & user_set)
+    data_set = set((int(key), int(val)) for key in data for val in data[key])
+    num_hit = len(set(gd_truth) & data_set)
     precision = float(num_hit) / num_recommend
     recall = float(num_hit) / num_real_buy
     F_measure = 2.0 * precision * recall / (precision + recall)
