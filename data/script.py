@@ -6,6 +6,7 @@ from util import userHandler
 
 TRAIN_DATA_PERCENT = 0.9
 USERLIST_WITHOUT_NOISY_TABLE_NAME = 'userlistwithoutnoisy'
+TRAIN_DELETE_NOISY_DATA = 'traindeletenoisydata'
 
 
 def create_table(conn):
@@ -119,14 +120,40 @@ def delete_noisy_data(conn):
         pass
     cursor.close()
 
+def create_user_buy_train_delete_noisy_data():
+    cursor = conn.cursor()
+    try:
+        q = 'SELECT name FROM sqlite_master WHERE type="table" AND name="%s"' % TRAIN_DELETE_NOISY_DATA
+        cursor.execute(q)
+        if cursor.fetchone():
+            cursor.execute('drop table %s' % TRAIN_DELETE_NOISY_DATA)
+            conn.commit()
+        q = 'create table %s as ' % TRAIN_DELETE_NOISY_DATA
+        q += 'select user_id, item_id, behavior_type, '
+        q += 'min(item_category) as item_category, min(time) as time, count(*) as num '
+        q += 'from traindata '
+        q += 'group by user_id, item_id, behavior_type'
+        cursor.execute(q)
+        conn.commit()
+        q = 'insert into %s ' % TRAIN_DELETE_NOISY_DATA
+        q += 'select user_id, item_id, behavior_type, item_category, time, "" '
+        q += 'from traindata where behavior_type=4'
+        cursor.execute(q)
+        conn.commit()
+    except Exception as e:
+        print e
+        pass
+    cursor.close()
+
 if __name__ == '__main__':
     try:
         db_path = os.path.join(os.path.dirname(settings.__file__), settings.DB_NAME)
         conn = sqlite3.connect(db_path)
         if create_table(conn):
             insert_data(conn)
-        delete_noisy_data(conn)
-        divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
-        create_user_buy_train_data(conn)
+        # delete_noisy_data(conn)
+        # divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
+        # create_user_buy_train_data(conn)
+        create_user_buy_train_delete_noisy_data()
     except Exception as e:
         print e
