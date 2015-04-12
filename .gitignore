@@ -13,4 +13,5 @@
 *.json
 *.csv
 *.xlsx
+*.zip
 lib/

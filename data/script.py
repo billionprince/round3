@@ -130,7 +130,7 @@ def create_user_buy_train_delete_noisy_data():
             conn.commit()
         q = 'create table %s as ' % TRAIN_DELETE_NOISY_DATA
         q += 'select user_id, item_id, behavior_type, '
-        q += 'min(item_category) as item_category, min(time) as time, count(*) as num '
+        q += 'item_category, min(time) as time, count(*) as num '
         q += 'from traindata '
         q += 'group by user_id, item_id, behavior_type'
         cursor.execute(q)
