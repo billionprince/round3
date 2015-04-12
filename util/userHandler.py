@@ -166,23 +166,22 @@ def get_userid_buy_behavior_num(tableName='userlist', buy_behavior_num=2):
 
 def get_all_userid_and_itemid_and_behavior_type_no_distinct(tableName='trainbuydata'):
     cursor = CONN.cursor()
-    cursor.execute('select user_id, item_id, behavior_type from %s' % (tableName))
-    lines = cursor.fetchall()
-    rec = []
-    for line in lines:
-        rec.append([str(line[0]), str(line[1]), int(line[2])])
-    return rec
-
-def get_all_userid_and_itemid_distinct(b_type, tableName='trainbuydata'):
-    cursor = CONN.cursor()
-    int_b_type = b_type
-    if not isinstance(b_type, int):
-        int_b_type = int(int_b_type)
-    cursor.execute('select distinct user_id, item_id from %s where behavior_type=%d' % (tableName, int_b_type))
+    cursor.execute('select user_id, item_id, behavior_type, time from %s' % (tableName))
     lines = cursor.fetchall()
     rec = {}
     for line in lines:
         if str(line[0]) not in rec:
             rec[str(line[0])] = []
-        rec[str(line[0])].append(str(line[1]))
+        rec[str(line[0])].append([str(line[1]), int(line[2]), str(line[3])])
+    return rec
+
+def get_all_userid_itemid_and_time_distinct(btype, tableName='trainbuydata'):
+    cursor = CONN.cursor()
+    cursor.execute('select distinct user_id, item_id, behavior_type, time from %s where behavior_type=%d' % (tableName, btype))
+    lines = cursor.fetchall()
+    rec = {}
+    for line in lines:
+        if str(line[0]) not in rec:
+            rec[str(line[0])] = []
+        rec[str(line[0])].append([str(line[1]), int(line[2]), str(line[3])])
     return rec
