@@ -112,7 +112,7 @@ def item_class_analysis(item_op_users, c_label, n_class, item_class, item_lst):
     return class_buy_cnt
 
 
-def op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr):
+def op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr, item_lst):
 
     user_id = userHandler.get_all_uid('traindata')
     user_p14 = {}
@@ -134,17 +134,21 @@ def op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy
         if user_p14[ui] > trans_ratio:
             for ti in user_scan_his[ui]:
                 if timeHandler.sub_days_of_two_time(ti[2], '2014-12-16 00') < day_thr:
-                    if ti not in user_buy_his[ui]:
-                        recommendation_dict[ui].append(ti[0])
+                    tj = [tj for tj in user_buy_his[ui] if tj[0] == ti[0]]
+                    if tj:
+                        if timeHandler.sub_days_of_two_time(ti[2], tj[0][2]) < 0 and ti[0] in item_lst:
+                            recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
                     else:
-                        recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
+                        recommendation_dict[ui].append(ti[0])
         if user_p34[ui] > trans_ratio:
             for ti in user_cart_his[ui]:
                 if timeHandler.sub_days_of_two_time(ti[2], '2014-12-16 00') < day_thr:
-                    if ti not in user_buy_his[ui]:
-                        recommendation_dict[ui].append(ti[0])
+                    tj = [tj for tj in user_buy_his[ui] if tj[0] == ti[0]]
+                    if tj:
+                        if timeHandler.sub_days_of_two_time(ti[2], tj[0][2]) < 0 and ti[0] in item_lst:
+                            recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
                     else:
-                        recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
+                        recommendation_dict[ui].append(ti[0])
         recommendation_dict[ui] = list(set(recommendation_dict[ui]))
         if len(recommendation_dict[ui]) == 0:
             recommendation_dict.pop(ui)
@@ -171,10 +175,18 @@ def recommendation(num_sigular, min_nonzero, sim_thr, trans_ratio, day_thr):
 
     class_buy_cnt = item_class_analysis(item_op_users, c_label, n_class, item_class, item_lst)
 
-    recommendation_dict = op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr)
+    recommendation_dict = op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr, item_lst)
 
     return recommendation_dict
 
 
 if __name__ == '__main__':
-    recommendation(100, 8, 0.1, 0.5, 3)
+    recommendation(100, 8, 0.05, 0.5, 3)
+
+# 建表说明
+# 前90% 去1212不去重：traindata 去重后：traindeletenoisydata
+# 去重后分别生成
+# trainbuydata 只存不去重的购买记录
+# traincartdata 只存去重后的加购物车记录
+# trainscandata 只存去重后的浏览记录
+# 后10% 去1212不去重：testdata 只选behav=4且去重：testbuydata
