@@ -4,16 +4,21 @@ import settings
 
 def calculate(data):
     gd_truth = dbHandler.read_table('testdata')
-    num_recommend = sum([len(data[key]) for key in data])
     num_real_buy = len(gd_truth)
-    user_set = set(map(int, data.keys()))
-    hit_usr = len(set([line[0] for line in gd_truth]) & user_set)
-    data_set = set((int(key), int(val)) for key in data for val in data[key])
+    data_set, user_set, num_recommend = set(), set(), 0
+    if isinstance(data, dict):
+        num_recommend = sum([len(data[key]) for key in data])
+        user_set = set(map(int, data.keys()))
+        data_set = set((int(key), int(val)) for key in data for val in data[key])
+    elif isinstance(data, list) or isinstance(data, tuple):
+        num_recommend = len(data)
+        user_set = set(map(int, [val[0] for val in data]))
+        data_set = set(map(lambda x: tuple(map(int, x)), data))
     num_hit = len(set(gd_truth) & data_set)
+    hit_usr = len(set([line[0] for line in gd_truth]) & user_set)
     precision = float(num_hit) / num_recommend
     recall = float(num_hit) / num_real_buy
     F_measure = 2.0 * precision * recall / (precision + recall)
-
     print 'precision =', precision
     print 'recall=', recall
     print 'F_measure=', F_measure
