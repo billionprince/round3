@@ -72,7 +72,7 @@ def create_test_data(conn, line_num, tableName='userlist'):
             cursor.execute('drop table testdata')
             conn.commit()
         cursor.execute(
-            'create table testdata as select user_id, item_id from %s where behavior_type=4 order by time desc limit %s' % (tableName, line_num))
+            'create table testdata as select user_id, item_id from %s order by time desc limit %s' % (tableName, line_num))
         conn.commit()
     except Exception as e:
         print e
@@ -151,8 +151,8 @@ if __name__ == '__main__':
         conn = sqlite3.connect(db_path)
         if create_table(conn):
             insert_data(conn)
-        # delete_noisy_data(conn)
-        # divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
+        delete_noisy_data(conn)
+        divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
         # create_user_buy_train_data(conn)
         create_user_buy_train_delete_noisy_data()
     except Exception as e:

@@ -1,12 +1,13 @@
-import sqlite3
-from util import userHandler, timeHandler
-import os
-import settings
+from util import dbHandler
 from recsys.algorithm.factorize import SVD
 from recsys.datamodel.data import Data
 
-DB_PATH = os.path.join(os.path.dirname(settings.__file__), settings.DB_NAME)
-CONN = sqlite3.connect(DB_PATH)
+
+TRAIN_DELETE_NOISY_DATA = 'traindeletenoisydata'
+TRAIN_SCAN_TABLE = 'trainscandata'
+TRAIN_CART_TABLE = 'traincartdata'
+TRAIN_BUY_TABLE = 'trainbuydata'
+USERLIST_WITHOUT_NOISY_TABLE_NAME = 'userlistwithoutnoisy'
 USERLIST = ['user_id', 'item_id', 'behavior_type', 'user_geohash', 'item_category', 'time']
 IMTELIST = ['item_id', 'item_geohash', 'item_category']
 
@@ -98,95 +99,64 @@ def svd_based_classification(svd, item_lst, item_idx, item_str, sim_thr):
         if c_label[ti] not in item_class:
             item_class[c_label[ti]] = []
         item_class[c_label[ti]].append(ti)
-    print n_class
     return sim_mtx, c_label, n_class, item_class
 
-def item_class_analysis(item_op_users, c_label, n_class, item_class, item_lst):
-    class_buy_cnt = {}
-    for ti in item_lst:
-        if c_label[ti] not in class_buy_cnt:
-            class_buy_cnt[c_label[ti]] = []
-        class_buy_cnt[c_label[ti]].append((ti, item_op_users[ti]))
-    for ci in range(n_class):
-        class_buy_cnt[ci] = sorted(class_buy_cnt[ci], lambda x, y: cmp(x[1], y[1]), reverse = True)
-    return class_buy_cnt
+def recommendation(num_sigular, min_nonzero, sim_thr):
 
+    # # === BEGIN Preprocess create table ===
+    ## run script.py and get TRAIN_DELETE_NOISY_DATA and testdata
+    ## if only want to calculate item similarity, only TRAIN_BUY_TABLE is needed, the other two table is built for recommendation
+    # when testing use the sentence below:
+    create_single_behavior_table(TRAIN_BUY_TABLE, TRAIN_DELETE_NOISY_DATA, 4)
+    ## before submit, use the sentence below:
+    # create_single_behavior_table(TRAIN_BUY_TABLE, USERLIST_WITHOUT_NOISY_TABLE_NAME, 4)
+    # create_single_behavior_table(dbHandler.CONN, TRAIN_SCAN_TABLE, TRAIN_DELETE_NOISY_DATA, 1)
+    # create_single_behavior_table(dbHandler.CONN, TRAIN_CART_TABLE, TRAIN_DELETE_NOISY_DATA, 3)
+    # # === END Preprocess create table ===
 
-def op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr, item_lst):
-
-    user_id = userHandler.get_all_uid('traindata')
-    user_p14 = {}
-    user_p34 = {}
-
-    for ui in user_id:
-        cnt_buy, cnt_cart, cnt_scan, user_p14[ui], user_p34[ui] = 0, 0, 0, 0, 0
-        if ui in user_buy_his:
-            cnt_buy = len(user_buy_his[ui])
-        if ui in user_scan_his:
-            cnt_scan = len(user_scan_his[ui])
-        if ui in user_cart_his:
-            cnt_cart = len(user_cart_his[ui])
-        if cnt_scan > 0:
-            user_p14[ui] = 1.0*cnt_buy/cnt_scan
-        if cnt_cart > 0:
-            user_p34[ui] = 1.0*cnt_buy/cnt_cart
-        recommendation_dict[ui] = []
-        if user_p14[ui] > trans_ratio:
-            for ti in user_scan_his[ui]:
-                if timeHandler.sub_days_of_two_time(ti[2], '2014-12-16 00') < day_thr:
-                    tj = [tj for tj in user_buy_his[ui] if tj[0] == ti[0]]
-                    if tj:
-                        if timeHandler.sub_days_of_two_time(ti[2], tj[0][2]) < 0 and ti[0] in item_lst:
-                            recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
-                    else:
-                        recommendation_dict[ui].append(ti[0])
-        if user_p34[ui] > trans_ratio:
-            for ti in user_cart_his[ui]:
-                if timeHandler.sub_days_of_two_time(ti[2], '2014-12-16 00') < day_thr:
-                    tj = [tj for tj in user_buy_his[ui] if tj[0] == ti[0]]
-                    if tj:
-                        if timeHandler.sub_days_of_two_time(ti[2], tj[0][2]) < 0 and ti[0] in item_lst:
-                            recommendation_dict[ui].append(class_buy_cnt[ti[0]][0][0])
-                    else:
-                        recommendation_dict[ui].append(ti[0])
-        recommendation_dict[ui] = list(set(recommendation_dict[ui]))
-        if len(recommendation_dict[ui]) == 0:
-            recommendation_dict.pop(ui)
-    return recommendation_dict
-
-def recommendation(num_sigular, min_nonzero, sim_thr, trans_ratio, day_thr):
-    user_buy_his = userHandler.get_all_userid_itemid_and_time_distinct(4, 'trainbuydata')
-
-    user_scan_his = userHandler.get_all_userid_itemid_and_time_distinct(1, 'trainscandata')
-
-    user_cart_his = userHandler.get_all_userid_itemid_and_time_distinct(3, 'traincartdata')
-
-    # t1 = time.clock()
-    # print 'sql operation time:', t1 - t0
-
-    recommendation_dict = {}
+    user_buy_his = get_all_userid_itemid_and_time_distinct(4, TRAIN_DELETE_NOISY_DATA)
 
     user_idx, item_idx, user_str, item_str, item_op_users, user_op_cnt, user_op_item_cnt = preprocess(user_buy_his)
     svd_item_based, item_lst = build_svd_item_based(user_op_item_cnt, item_op_users, user_idx, item_idx, min_nonzero)
-
     svd_item_based = svd_solver(svd_item_based, num_sigular)
-
     sim_mtx, c_label, n_class, item_class = svd_based_classification(svd_item_based, item_lst, item_idx, item_str, sim_thr)
+    print c_label
 
-    class_buy_cnt = item_class_analysis(item_op_users, c_label, n_class, item_class, item_lst)
+    return c_label, item_lst, sim_mtx
 
-    recommendation_dict = op_history_based_recommendation(recommendation_dict, class_buy_cnt, user_buy_his, user_scan_his, user_cart_his, trans_ratio, day_thr, item_lst)
+def get_all_userid_itemid_and_time_distinct(btype, tableName='trainbuydata'):
+    cursor = dbHandler.CONN.cursor()
+    cursor.execute('select distinct user_id, item_id, behavior_type, time from %s where behavior_type=%s' % (tableName, btype))
+    lines = cursor.fetchall()
+    rec = {}
+    for line in lines:
+        if str(line[0]) not in rec:
+            rec[str(line[0])] = []
+        rec[str(line[0])].append([str(line[1]), int(line[2]), str(line[3])])
+    return rec
 
-    return recommendation_dict
+def create_single_behavior_table(table_origin, table_new, btype):
+    cursor = dbHandler.CONN.cursor()
+    try:
+        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="%s"' % table_new)
+        if cursor.fetchone():
+            cursor.execute('drop table %s' % table_new)
+        cursor.execute('create table %s as select * from %s where behavior_type=%s' % (table_new, table_origin, btype))
+    except Exception as e:
+        print e
+        pass
+    cursor.close()
 
 
 if __name__ == '__main__':
-    recommendation(100, 8, 0.05, 0.5, 3)
+    recommendation(100, 8, 0.05)
 
-# 建表说明
-# 前90% 去1212不去重：traindata 去重后：traindeletenoisydata
-# 去重后分别生成
-# trainbuydata 只存不去重的购买记录
-# traincartdata 只存去重后的加购物车记录
-# trainscandata 只存去重后的浏览记录
-# 后10% 去1212不去重：testdata 只选behav=4且去重：testbuydata
+# INPUT parameters:
+# num_sigular: num of sigular value in SVD, don't change
+# min_nonzero: min num of nun-zero elements requied in a row or col in svd matrix, don't change
+# sim_thr: when, similarity below this threshold, the similarity value will be set to INF
+# OUTPUT parameters:
+# clabel: a dict, key is item_id(str), value is the class_id the item belongs to
+# item_lst: a list of item_id(str), the itemlst really used in svd, only these items are listed in c_label
+# sim_mtx: a two level dict, similarity matrix of items, only item in item_lst will be in this matrix, key is item_id(str)
+#          sim[itemid1][itemid2] = similarity_value
