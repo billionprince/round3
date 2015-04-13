@@ -71,8 +71,12 @@ def create_test_data(conn, line_num, tableName='userlist'):
         if cursor.fetchone():
             cursor.execute('drop table testdata')
             conn.commit()
-        cursor.execute(
-            'create table testdata as select user_id, item_id from %s order by time desc limit %s' % (tableName, line_num))
+        q = 'create table testdata as '
+        q += 'select user_id, item_id from '
+        q += '(select user_id, item_id, behavior_type '
+        q += 'from %s order by time desc limit %s) ' % (tableName, line_num)
+        q += 'where behavior_type=4'
+        cursor.execute(q)
         conn.commit()
     except Exception as e:
         print e
@@ -153,7 +157,7 @@ if __name__ == '__main__':
             insert_data(conn)
         delete_noisy_data(conn)
         divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
-        # create_user_buy_train_data(conn)
+        create_user_buy_train_data(conn)
         create_user_buy_train_delete_noisy_data()
     except Exception as e:
         print e
