@@ -65,15 +65,23 @@ def get_columns(tableName='userlist', fields=['user_id'], distinct=False):
     cursor.close()
     return lines
 
-def get_all_line_by_fields(tbName='userlist', dict={}, distinct=False):
+def get_all_line_by_fields(tbName='userlist', dict={}, fields=[], distinct=False):
     cursor = CONN.cursor()
     if not distinct:
         q = 'select * from %s ' % tbName
     else:
         q = 'select distinct * from %s ' % tbName
+    if fields:
+        q.replace('*', ','.join(fields))
     if dict:
         q += 'where '
-        q += ' and '.join(['%s="%s"' % (key, dict[key]) for key in dict])
+        para = []
+        for k, v in dict.iteritems():
+            if isinstance(v, list):
+                para.append('%s in ("%s")' % (k, '""'.join(v)))
+            else:
+                para.append('%s="%s"' % (k, v))
+        q += ' and '.join(para)
     cursor.execute(q)
     lines = [line for line in cursor.fetchall()]
     cursor.close()
