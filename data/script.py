@@ -116,7 +116,10 @@ def delete_noisy_data(conn):
             cursor.execute('drop table "%s"' % USERLIST_WITHOUT_NOISY_TABLE_NAME)
             conn.commit()
         str = 'create table %s ' % USERLIST_WITHOUT_NOISY_TABLE_NAME
-        str += 'as select * from userlist where time not like "%2014-12-12%"'
+        str += 'as select user_id, item_id, behavior_type, '
+        str += 'min(user_geohash) as user_geohash, min(item_category) as item_category, time '
+        str += 'from userlist where time not like "%2014-12-12%" '
+        str += 'group by user_id, item_id, behavior_type, time'
         cursor.execute(str)
         conn.commit()
     except Exception as e:
