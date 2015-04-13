@@ -55,7 +55,7 @@ def table_exist(tableName):
 
 def get_columns(tableName='userlist', fields=['user_id'], distinct=False):
     cursor = CONN.cursor()
-    fields_str = ','.join(fields)
+    fields_str = ','.join(fields) if fields else '*'
     if distinct:
         q = 'select distinct %s from %s' % (fields_str, tableName)
     else:

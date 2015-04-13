@@ -84,20 +84,6 @@ def create_test_data(conn, line_num, tableName='userlist'):
     cursor.close()
 
 
-def create_user_buy_train_data(conn):
-    cursor = conn.cursor()
-    try:
-        cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="trainbuydata"')
-        if cursor.fetchone():
-            cursor.execute('drop table trainbuydata')
-            conn.commit()
-        cursor.execute('create table trainbuydata as select * from traindata where behavior_type=4')
-        conn.commit()
-    except Exception as e:
-        print e
-        pass
-    cursor.close()
-
 def divide_data_set(conn, tableName='userlist'):
     cursor = conn.cursor()
     cursor.execute('select count(*) from %s' % tableName)
@@ -127,30 +113,44 @@ def delete_noisy_data(conn):
         pass
     cursor.close()
 
-def create_user_buy_train_delete_noisy_data():
-    cursor = conn.cursor()
-    try:
-        q = 'SELECT name FROM sqlite_master WHERE type="table" AND name="%s"' % TRAIN_DELETE_NOISY_DATA
-        cursor.execute(q)
-        if cursor.fetchone():
-            cursor.execute('drop table %s' % TRAIN_DELETE_NOISY_DATA)
-            conn.commit()
-        q = 'create table %s as ' % TRAIN_DELETE_NOISY_DATA
-        q += 'select user_id, item_id, behavior_type, '
-        q += 'item_category, min(time) as time, count(*) as num '
-        q += 'from traindata '
-        q += 'group by user_id, item_id, behavior_type'
-        cursor.execute(q)
-        conn.commit()
-        q = 'insert into %s ' % TRAIN_DELETE_NOISY_DATA
-        q += 'select user_id, item_id, behavior_type, item_category, time, "" '
-        q += 'from traindata where behavior_type=4'
-        cursor.execute(q)
-        conn.commit()
-    except Exception as e:
-        print e
-        pass
-    cursor.close()
+# def create_user_buy_train_delete_noisy_data():
+#     cursor = conn.cursor()
+#     try:
+#         q = 'SELECT name FROM sqlite_master WHERE type="table" AND name="%s"' % TRAIN_DELETE_NOISY_DATA
+#         cursor.execute(q)
+#         if cursor.fetchone():
+#             cursor.execute('drop table %s' % TRAIN_DELETE_NOISY_DATA)
+#             conn.commit()
+#         q = 'create table %s as ' % TRAIN_DELETE_NOISY_DATA
+#         q += 'select user_id, item_id, behavior_type, '
+#         q += 'item_category, min(time) as time, count(*) as num '
+#         q += 'from traindata '
+#         q += 'group by user_id, item_id, behavior_type'
+#         cursor.execute(q)
+#         conn.commit()
+#         q = 'insert into %s ' % TRAIN_DELETE_NOISY_DATA
+#         q += 'select user_id, item_id, behavior_type, item_category, time, "" '
+#         q += 'from traindata where behavior_type=4'
+#         cursor.execute(q)
+#         conn.commit()
+#     except Exception as e:
+#         print e
+#         pass
+#     cursor.close()
+
+# def create_user_buy_train_data(conn):
+#     cursor = conn.cursor()
+#     try:
+#         cursor.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="trainbuydata"')
+#         if cursor.fetchone():
+#             cursor.execute('drop table trainbuydata')
+#             conn.commit()
+#         cursor.execute('create table trainbuydata as select * from traindata where behavior_type=4')
+#         conn.commit()
+#     except Exception as e:
+#         print e
+#         pass
+#     cursor.close()
 
 if __name__ == '__main__':
     try:
@@ -160,7 +160,7 @@ if __name__ == '__main__':
             insert_data(conn)
         delete_noisy_data(conn)
         divide_data_set(conn, USERLIST_WITHOUT_NOISY_TABLE_NAME)
-        create_user_buy_train_data(conn)
-        create_user_buy_train_delete_noisy_data()
+        # create_user_buy_train_data(conn)
+        # create_user_buy_train_delete_noisy_data()
     except Exception as e:
         print e
