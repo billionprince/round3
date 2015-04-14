@@ -44,7 +44,7 @@ def writeCsvFile(path=os.path.join(os.path.dirname(settings.__file__), settings.
         if isinstance(lines, dict):
             rows = [[k, v] for k in lines for v in lines[k] if isinstance(lines[k], list)]
             rows += [[k, lines[k]] for k in lines if not isinstance(lines[k], list)]
-            writer.writerows([rows])
+            writer.writerows(rows)
         elif isinstance(lines, list):
             writer.writerows(lines)
         else:
